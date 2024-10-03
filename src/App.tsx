@@ -10,7 +10,7 @@ function App() {
     <SnackbarProvider maxSnack={3}>
       <Container maxWidth="sm">
         <Typography variant="h4" align="center" gutterBottom>
-          ERC20 Token Sender
+          ERC20 Transfer App
         </Typography>
         <WalletConnect />
         <SendTokenForm />

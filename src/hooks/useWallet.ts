@@ -1,63 +1,74 @@
 import { useState, useEffect } from 'react';
 import { ethers, BrowserProvider } from 'ethers';
+import WalletConnectProvider from '@walletconnect/ethereum-provider';
+import type { EthereumProvider as WalletConnectProviderType } from '@walletconnect/ethereum-provider';
+
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 export const useWallet = () => {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [account, setAccount] = useState<string | null>(null);
 
   const connectWallet = async () => {
-    if (typeof window.ethereum !== 'undefined' && window.ethereum !== null) {
-      try {
-        const browserProvider = new BrowserProvider(window.ethereum);
-        const network = await browserProvider.getNetwork();
+    try {
+      const walletConnectProvider = await WalletConnectProvider.init({
+        projectId: process.env.REACT_APP_WALLETCONNECT_PROJECT_ID as string,
+        chains: [11155111], // Sepolia test network chain ID
+        showQrModal: true,
+        methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData'],
+      });
 
-        if (network.chainId !== 11155111n) {
-          // Request network change
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0xaa36a7' }], // 11155111 in hex
-            });
-            // Re-initialize provider after network switch
-            const updatedProvider = new BrowserProvider(window.ethereum);
-            const updatedNetwork = await updatedProvider.getNetwork();
-            if (updatedNetwork.chainId !== 11155111n) {
-              alert('Failed to switch to the Sepolia network.');
-              return;
-            } else {
-              // Proceed with connecting
-              const accounts = await window.ethereum.request({
-                method: 'eth_requestAccounts',
-              });
-              const address = accounts[0];
-              setProvider(updatedProvider);
-              setAccount(address);
-              localStorage.setItem('connected', 'true');
-            }
-          } catch (switchError) {
-            console.error('Error switching network:', switchError);
-            alert('Please switch to the Sepolia network in MetaMask.');
-            return;
-          }
-        } else {
-          // Network is correct, proceed with connecting
-          const accounts = await window.ethereum.request({
-            method: 'eth_requestAccounts',
-          });
-          const address = accounts[0];
-          setProvider(browserProvider);
-          setAccount(address);
-          localStorage.setItem('connected', 'true');
-        }
-      } catch (error) {
-        console.error('Error connecting wallet:', error);
+      await walletConnectProvider.connect();
+
+      const browserProvider = new BrowserProvider(walletConnectProvider);
+      const network = await browserProvider.getNetwork();
+
+      if (network.chainId !== 11155111n) {
+        alert('Please switch to the Sepolia network in your wallet.');
+        return;
       }
-    } else {
-      alert('Please install MetaMask!');
+
+      const signer = await browserProvider.getSigner();
+      const address = await signer.getAddress();
+
+      setProvider(browserProvider);
+      setAccount(address);
+      localStorage.setItem('connected', 'true');
+
+      // Handle session disconnect
+      walletConnectProvider.on('disconnect', () => {
+        disconnectWallet();
+      });
+
+      // Handle account change
+      walletConnectProvider.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length === 0) {
+          disconnectWallet();
+        } else {
+          setAccount(accounts[0]);
+        }
+      });
+
+      // Handle chain change
+      walletConnectProvider.on('chainChanged', (chainIdHex: string) => {
+        const chainId = parseInt(chainIdHex, 16); // Convert hex string to number
+        if (chainId !== 11155111) {
+          alert('Please switch back to the Sepolia network in your wallet.');
+        }
+      });
+    } catch (error) {
+      console.error('Error connecting WalletConnect:', error);
     }
   };
 
-  const disconnectWallet = () => {
+  const disconnectWallet = async () => {
+    if (provider) {
+      await provider.destroy();
+    }
     setProvider(null);
     setAccount(null);
     localStorage.removeItem('connected');
@@ -68,6 +79,7 @@ export const useWallet = () => {
     if (isConnected === 'true') {
       connectWallet();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { provider, account, connectWallet, disconnectWallet };

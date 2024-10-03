@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { TextField, Button, MenuItem } from '@mui/material';
 import { useWallet } from '../hooks/useWallet';
-import { ethers, parseUnits } from 'ethers';
+import { ethers, parseUnits, parseEther, Contract } from 'ethers';
 import { erc20Abi } from '../utils/abi';
 import { useSnackbar } from 'notistack';
 import { supportedTokens } from '../utils/constants';
@@ -28,7 +28,7 @@ const SendTokenForm: React.FC = () => {
 
     const network = await provider.getNetwork();
     if (network.chainId !== 11155111n) {
-      enqueueSnackbar('Please switch to the Sepolia network in MetaMask.', {
+      enqueueSnackbar('Please switch to the Sepolia network in your wallet.', {
         variant: 'warning',
       });
       return;
@@ -36,18 +36,26 @@ const SendTokenForm: React.FC = () => {
 
     try {
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(data.tokenAddress, erc20Abi, signer);
-      const decimals = await contract.decimals();
-      const amount = parseUnits(data.amount, decimals);
-
-      const tx = await contract.transfer(data.recipient, amount);
-      enqueueSnackbar(`Transaction submitted: ${tx.hash}`, { variant: 'info' });
-
-      // Track transaction
-      trackTransaction(tx.hash);
+      if (data.tokenAddress === 'ETH') {
+        // Sending ETH
+        const tx = await signer.sendTransaction({
+          to: data.recipient,
+          value: parseEther(data.amount),
+        });
+        enqueueSnackbar(`Transaction submitted: ${tx.hash}`, { variant: 'info' });
+        trackTransaction(tx.hash);
+      } else {
+        // Sending ERC20 Token
+        const contract = new Contract(data.tokenAddress, erc20Abi, signer);
+        const decimals = await contract.decimals();
+        const amount = parseUnits(data.amount, decimals);
+        const tx = await contract.transfer(data.recipient, amount);
+        enqueueSnackbar(`Transaction submitted: ${tx.hash}`, { variant: 'info' });
+        trackTransaction(tx.hash);
+      }
     } catch (error) {
       enqueueSnackbar('Transaction failed!', { variant: 'error' });
-      console.error('Error sending tokens:', error);
+      console.error('Error sending transaction:', error);
     }
   };
 
@@ -80,7 +88,7 @@ const SendTokenForm: React.FC = () => {
         {...register('amount', { required: true })}
       />
       <Button type="submit" variant="contained" color="primary" fullWidth>
-        Send Tokens
+        Send
       </Button>
     </form>
   );

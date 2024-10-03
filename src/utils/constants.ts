@@ -1,7 +1,10 @@
 export const supportedTokens = [
   {
-    name: 'Sepolia Test Token',
-    address: 'token address here (later)',
+    name: 'ETH',
+    address: 'ETH',
   },
-  // Add more tokens if available
+  {
+    name: 'Sepolia Test Token',
+    address: '0x', // todo
+  },
 ];

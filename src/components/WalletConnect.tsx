@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Typography } from '@mui/material';
 import { useWallet } from '../hooks/useWallet';
 
-const WalletConnect: React.FC = () => {
+const WalletConnectComponent: React.FC = () => {
   const { connectWallet, disconnectWallet, account } = useWallet();
 
   return (
@@ -24,4 +24,4 @@ const WalletConnect: React.FC = () => {
   );
 };
 
-export default WalletConnect;
+export default WalletConnectComponent;
