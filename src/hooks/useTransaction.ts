@@ -24,35 +24,39 @@ export const useTransaction = () => {
   };
 
   useEffect(() => {
-    const provider = new BrowserProvider(window.ethereum);
+    if (typeof window.ethereum !== 'undefined' && window.ethereum !== null) {
+      const provider = new BrowserProvider(window.ethereum);
 
-    const interval = setInterval(async () => {
-      if (pendingTransactions.length === 0) return;
+      const interval = setInterval(async () => {
+        if (pendingTransactions.length === 0) return;
 
-      const updatedTransactions: string[] = [];
+        const updatedTransactions: string[] = [];
 
-      for (const txHash of pendingTransactions) {
-        const receipt = await provider.getTransactionReceipt(txHash);
-        if (receipt) {
-          if (receipt.status === 1) {
-            enqueueSnackbar(`Transaction ${txHash} confirmed!`, {
-              variant: 'success',
-            });
+        for (const txHash of pendingTransactions) {
+          const receipt = await provider.getTransactionReceipt(txHash);
+          if (receipt) {
+            if (receipt.status === 1) {
+              enqueueSnackbar(`Transaction ${txHash} confirmed!`, {
+                variant: 'success',
+              });
+            } else {
+              enqueueSnackbar(`Transaction ${txHash} failed.`, {
+                variant: 'error',
+              });
+            }
           } else {
-            enqueueSnackbar(`Transaction ${txHash} failed.`, {
-              variant: 'error',
-            });
+            updatedTransactions.push(txHash); // Still pending
           }
-        } else {
-          updatedTransactions.push(txHash); // Still pending
         }
-      }
 
-      setPendingTransactions(updatedTransactions);
-      localStorage.setItem('pendingTransactions', JSON.stringify(updatedTransactions));
-    }, 5000);
+        setPendingTransactions(updatedTransactions);
+        localStorage.setItem('pendingTransactions', JSON.stringify(updatedTransactions));
+      }, 5000);
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    } else {
+      alert('Please install MetaMask!');
+    }
   }, [pendingTransactions, enqueueSnackbar]);
 
   // Synchronize state across tabs

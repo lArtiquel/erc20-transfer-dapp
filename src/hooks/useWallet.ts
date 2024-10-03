@@ -6,7 +6,7 @@ export const useWallet = () => {
   const [account, setAccount] = useState<string | null>(null);
 
   const connectWallet = async () => {
-    if (window.ethereum) {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum !== null) {
       try {
         const browserProvider = new BrowserProvider(window.ethereum);
         const network = await browserProvider.getNetwork();
