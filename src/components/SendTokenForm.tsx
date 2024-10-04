@@ -213,7 +213,7 @@ const SendTokenForm: React.FC = () => {
           padding: 3,
           boxShadow: 3,
           borderRadius: 2,
-          backgroundColor: '#fff', // White background for the form
+          backgroundColor: 'background.paper',
         }}
       >
         {/* Disconnect Wallet Button */}

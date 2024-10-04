@@ -39,7 +39,7 @@ const TransactionStatus: React.FC = () => {
           sx={{
             maxHeight: '400px', // Fixed height
             overflow: 'auto', // Scrollable
-            backgroundColor: '#f9f9f9',
+            backgroundColor: 'background.paper',
             borderRadius: 1,
             padding: 0,
           }}
@@ -55,7 +55,7 @@ const TransactionStatus: React.FC = () => {
                   cursor: 'pointer',
                   transition: 'background-color 0.3s',
                   '&:hover': {
-                    backgroundColor: '#e0f7fa',
+                    backgroundColor: 'primary.dark',
                   },
                 }}
               >
