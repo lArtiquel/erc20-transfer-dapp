@@ -22,18 +22,13 @@ import { useTransaction } from '../hooks/useTransaction';
 import SendIcon from '@mui/icons-material/Send';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import { truncateAddress } from '../utils/helperFunctions';
 
 interface FormData {
   tokenAddress: string;
   recipient: string;
   amount: string;
 }
-
-// Helper function to truncate Ethereum addresses
-const truncateAddress = (address: string, startLength = 6, endLength = 4): string => {
-  if (!address) return '';
-  return `${address.substring(0, startLength)}...${address.substring(address.length - endLength)}`;
-};
 
 const SendTokenForm: React.FC = () => {
   const { provider, account, networkId, connectWallet, disconnectWallet } = useWallet();
