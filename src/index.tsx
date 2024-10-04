@@ -1,14 +1,24 @@
+// src/index.tsx
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
-import { ThemeProvider } from '@mui/material/styles';
-import { theme } from './theme';
+import { Provider } from 'react-redux';
+import { store, persistor } from './store';
+import { SnackbarProvider } from 'notistack';
+import { PersistGate } from 'redux-persist/integration/react';
+import { CssBaseline } from '@mui/material';
 
 ReactDOM.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <App />
-    </ThemeProvider>
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <SnackbarProvider maxSnack={3}>
+          <CssBaseline />
+          <App />
+        </SnackbarProvider>
+      </PersistGate>
+    </Provider>
   </React.StrictMode>,
   document.getElementById('root')
 );

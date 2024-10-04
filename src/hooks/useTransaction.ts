@@ -1,71 +1,53 @@
-import { useState, useEffect } from 'react';
-import { BrowserProvider, ethers } from 'ethers';
-import { useSnackbar } from 'notistack';
+// src/hooks/useTransaction.ts
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../store';
+import {
+  addTransaction,
+  updateTransactionStatus,
+  setTransactions,
+} from '../store/transactionSlice';
+import broadcast from '../store/broadcast';
+import { useEffect } from 'react';
 
 export const useTransaction = () => {
-  const [pendingTransactions, setPendingTransactions] = useState<string[]>(() => {
-    const saved = localStorage.getItem('pendingTransactions');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const { enqueueSnackbar } = useSnackbar();
+  const dispatch = useDispatch<AppDispatch>();
+  const transactions = useSelector((state: RootState) => state.transactions.transactions);
 
-  const trackTransaction = (txHash: string) => {
-    setPendingTransactions(prev => {
-      const updated = [...prev, txHash];
-      localStorage.setItem('pendingTransactions', JSON.stringify(updated));
-      return updated;
-    });
+  const trackTransaction = (hash: string) => {
+    dispatch(addTransaction(hash));
   };
 
+  const updateStatus = (hash: string, status: 'success' | 'failed') => {
+    dispatch(updateTransactionStatus({ hash, status }));
+  };
+
+  // Listen to BroadcastChannel messages to synchronize transactions across tabs
   useEffect(() => {
-    const provider = new BrowserProvider(window.ethereum);
-
-    const interval = setInterval(async () => {
-      if (pendingTransactions.length === 0) return;
-
-      const updatedTransactions: string[] = [];
-
-      for (const txHash of pendingTransactions) {
-        const receipt = await provider.getTransactionReceipt(txHash);
-        if (receipt) {
-          if (receipt.status === 1) {
-            enqueueSnackbar(`Transaction ${txHash} confirmed!`, {
-              variant: 'success',
-            });
-          } else {
-            enqueueSnackbar(`Transaction ${txHash} failed.`, {
-              variant: 'error',
-            });
-          }
-        } else {
-          updatedTransactions.push(txHash); // Still pending
-        }
-      }
-
-      setPendingTransactions(updatedTransactions);
-      localStorage.setItem('pendingTransactions', JSON.stringify(updatedTransactions));
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [pendingTransactions, enqueueSnackbar]);
-
-  // Synchronize state across tabs
-  useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'pendingTransactions') {
-        setPendingTransactions(JSON.parse(event.newValue || '[]'));
+    const handleMessage = (event: MessageEvent) => {
+      const { type, payload } = event.data;
+      if (type === 'ADD_TRANSACTION') {
+        dispatch(addTransaction(payload));
+      } else if (type === 'UPDATE_TRANSACTION_STATUS') {
+        dispatch(updateTransactionStatus(payload));
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    broadcast.addEventListener('message', handleMessage);
+
+    return () => {
+      broadcast.removeEventListener('message', handleMessage);
+    };
+  }, [dispatch]);
+
+  // On initial load, ensure all transactions are synchronized
+  useEffect(() => {
+    // Optionally, you can implement logic to fetch and verify transaction statuses here
   }, []);
 
-  return { pendingTransactions, trackTransaction };
+  return {
+    transactions,
+    trackTransaction,
+    updateStatus,
+  };
 };

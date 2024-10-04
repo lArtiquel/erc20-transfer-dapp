@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
+// src/components/SendTokenForm.tsx
+
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { TextField, Button, MenuItem, Stack } from '@mui/material';
+import {
+  TextField,
+  Button,
+  MenuItem,
+  Stack,
+  Typography,
+  CircularProgress,
+  Box,
+} from '@mui/material';
 import { useWallet } from '../hooks/useWallet';
-import { ethers, parseUnits, parseEther, Contract } from 'ethers';
+import { ethers, parseUnits, parseEther, Contract, TransactionResponse } from 'ethers';
 import { erc20Abi } from '../utils/abi';
-import { useSnackbar } from 'notistack';
+import { useSnackbar, SnackbarKey } from 'notistack';
 import { supportedTokens } from '../utils/constants';
 import { useTransaction } from '../hooks/useTransaction';
+
+// Import MUI icons
+import SendIcon from '@mui/icons-material/Send';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 
 interface FormData {
   tokenAddress: string;
@@ -14,21 +29,30 @@ interface FormData {
   amount: string;
 }
 
+// Helper function to truncate Ethereum addresses
+const truncateAddress = (address: string, startLength = 6, endLength = 4): string => {
+  if (!address) return '';
+  return `${address.substring(0, startLength)}...${address.substring(address.length - endLength)}`;
+};
+
 const SendTokenForm: React.FC = () => {
-  const { provider, account } = useWallet();
+  const { provider, account, networkId, connectWallet, disconnectWallet } = useWallet();
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>();
-  const { enqueueSnackbar } = useSnackbar();
-  const { trackTransaction } = useTransaction();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const { trackTransaction, updateStatus } = useTransaction();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Refs to store the timeout ID and snackbar key
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const waitingSnackbarKeyRef = useRef<SnackbarKey | null>(null);
 
   const onSubmit = async (data: FormData) => {
     if (!provider || !account) {
-      console.log(provider);
-      console.log(account);
       enqueueSnackbar('Please connect your wallet.', { variant: 'warning' });
       return;
     }
@@ -37,7 +61,12 @@ const SendTokenForm: React.FC = () => {
 
     try {
       const network = await provider.getNetwork();
-      if (network.chainId !== 11155111n) {
+
+      // Convert network.chainId (number) to string for comparison
+      const networkChainId = network.chainId.toString();
+      const expectedChainId = networkId; // networkId is already a string
+
+      if (networkChainId !== expectedChainId) {
         enqueueSnackbar('Please switch to the Sepolia network in your wallet.', {
           variant: 'warning',
         });
@@ -45,34 +74,179 @@ const SendTokenForm: React.FC = () => {
       }
 
       const signer = await provider.getSigner();
+
+      let tx: TransactionResponse;
+
+      // Inform the user to confirm the transaction in the wallet
+      enqueueSnackbar('Please confirm the transaction in your wallet.', {
+        variant: 'info',
+        autoHideDuration: 6000,
+      });
+
       if (data.tokenAddress === 'ETH') {
         // Sending ETH
-        const tx = await signer.sendTransaction({
+        tx = await signer.sendTransaction({
           to: data.recipient,
           value: parseEther(data.amount),
         });
-        enqueueSnackbar(`Transaction submitted: ${tx.hash}`, { variant: 'info' });
-        trackTransaction(tx.hash);
       } else {
         // Sending ERC20 Token
         const contract = new Contract(data.tokenAddress, erc20Abi, signer);
         const decimals = await contract.decimals();
         const amount = parseUnits(data.amount, decimals);
-        const tx = await contract.transfer(data.recipient, amount);
-        enqueueSnackbar(`Transaction submitted: ${tx.hash}`, { variant: 'info' });
-        trackTransaction(tx.hash);
+        tx = await contract.transfer(data.recipient, amount);
       }
-    } catch (error) {
-      enqueueSnackbar('Transaction failed!', { variant: 'error' });
+
+      enqueueSnackbar(`Transaction submitted: ${tx.hash}`, { variant: 'info' });
+      trackTransaction(tx.hash);
+
+      // Show a loading snackbar for 'Waiting for transaction to be mined'
+      const waitingKey = enqueueSnackbar('Waiting for transaction to be mined...', {
+        variant: 'info',
+        persist: true, // Keeps the snackbar open until manually closed
+      });
+      waitingSnackbarKeyRef.current = waitingKey;
+
+      // Set a timeout to remove the 'Waiting' snackbar after 30 seconds
+      const timeout = setTimeout(() => {
+        if (waitingSnackbarKeyRef.current !== null) {
+          closeSnackbar(waitingSnackbarKeyRef.current);
+          waitingSnackbarKeyRef.current = null;
+        }
+        enqueueSnackbar(
+          'Transaction is taking longer than expected. Please check Etherscan for updates.',
+          {
+            variant: 'warning',
+            autoHideDuration: 6000,
+          }
+        );
+      }, 30000); // 30,000 milliseconds = 30 seconds
+      timeoutIdRef.current = timeout;
+
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+
+      // Transaction mined successfully, clear the timeout
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+
+      // Close the 'Waiting' snackbar if it's still open
+      if (waitingSnackbarKeyRef.current !== null) {
+        closeSnackbar(waitingSnackbarKeyRef.current);
+        waitingSnackbarKeyRef.current = null;
+      }
+
+      if (receipt && receipt.status === 1) {
+        enqueueSnackbar(`Transaction confirmed: ${tx.hash}`, {
+          variant: 'success',
+          autoHideDuration: 6000, // Auto hide after 6 seconds
+        });
+        updateStatus(tx.hash, 'success');
+      } else {
+        enqueueSnackbar(`Transaction failed: ${tx.hash}`, {
+          variant: 'error',
+          autoHideDuration: 6000,
+        });
+        updateStatus(tx.hash, 'failed');
+      }
+
+      reset(); // Reset form after transaction
+    } catch (error: any) {
+      // Clear the timeout if an error occurs
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+
+      // Close the 'Waiting' snackbar if it's still open
+      if (waitingSnackbarKeyRef.current !== null) {
+        closeSnackbar(waitingSnackbarKeyRef.current);
+        waitingSnackbarKeyRef.current = null;
+      }
+
+      // Enhanced error handling based on error code
+      if (error.code === 4001) {
+        // EIP-1193 userRejectedRequest error
+        enqueueSnackbar('Transaction rejected by the user.', { variant: 'error' });
+      } else {
+        enqueueSnackbar('Transaction failed or was rejected.', { variant: 'error' });
+      }
+
       console.error('Error sending transaction:', error);
     } finally {
       setIsLoading(false); // Stop loading
     }
   };
 
+  // Cleanup timeout and snackbar on component unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
+      if (waitingSnackbarKeyRef.current) {
+        closeSnackbar(waitingSnackbarKeyRef.current);
+      }
+    };
+  }, [closeSnackbar]);
+
+  // Handle button click based on connection status
+  const handleButtonClick = () => {
+    if (!account) {
+      connectWallet();
+    } else {
+      handleSubmit(onSubmit)();
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <Stack spacing={2}>
+    <Box
+      sx={{
+        display: 'flex', // Enable flexbox
+        justifyContent: 'center', // Center horizontally
+        alignItems: 'center', // Center vertically
+        padding: 2,
+      }}
+    >
+      <Stack
+        spacing={2}
+        sx={{
+          width: '100%',
+          maxWidth: 400,
+          padding: 3,
+          boxShadow: 3,
+          borderRadius: 2,
+          backgroundColor: '#fff', // White background for the form
+        }}
+      >
+        {/* Disconnect Wallet Button */}
+        {account && (
+          <Button
+            variant="contained"
+            color="error"
+            onClick={disconnectWallet}
+            startIcon={<PowerSettingsNewIcon />}
+            sx={{ alignSelf: 'flex-end' }}
+          >
+            Disconnect Wallet
+          </Button>
+        )}
+
+        {/* Show connected account and network */}
+        {account && (
+          <Box>
+            <Typography variant="subtitle1" noWrap>
+              <strong>Connected Account:</strong> {truncateAddress(account)}
+            </Typography>
+            <Typography variant="subtitle1">
+              <strong>Network ID:</strong> {networkId}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Token Selection */}
         <Controller
           name="tokenAddress"
           control={control}
@@ -97,6 +271,7 @@ const SendTokenForm: React.FC = () => {
           )}
         />
 
+        {/* Recipient Address */}
         <Controller
           name="recipient"
           control={control}
@@ -120,6 +295,7 @@ const SendTokenForm: React.FC = () => {
           )}
         />
 
+        {/* Amount */}
         <Controller
           name="amount"
           control={control}
@@ -157,17 +333,35 @@ const SendTokenForm: React.FC = () => {
           )}
         />
 
+        {/* Send/Connect Wallet Button */}
         <Button
-          type="submit"
           variant="contained"
-          color="primary"
+          color={account ? 'primary' : 'secondary'}
+          onClick={handleButtonClick}
           fullWidth
-          disabled={isLoading} // Disable button while loading
+          disabled={isLoading}
+          startIcon={
+            isLoading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : account ? (
+              <SendIcon />
+            ) : (
+              <AccountBalanceWalletIcon />
+            )
+          }
+          type="button" // Prevent form submission
+          sx={{ marginTop: 2 }}
         >
-          {isLoading ? 'Sending...' : 'Send'}
+          {isLoading
+            ? account
+              ? 'Sending...'
+              : 'Connecting...'
+            : account
+              ? 'Send'
+              : 'Connect Wallet'}
         </Button>
       </Stack>
-    </form>
+    </Box>
   );
 };
 

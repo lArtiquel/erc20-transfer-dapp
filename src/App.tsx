@@ -1,23 +1,22 @@
+// src/App.tsx
+
 import React from 'react';
-import { Container, Typography } from '@mui/material';
-import WalletConnect from './components/WalletConnect';
+import { Container, Typography, Divider } from '@mui/material';
 import SendTokenForm from './components/SendTokenForm';
 import TransactionStatus from './components/TransactionStatus';
-import { SnackbarProvider } from 'notistack';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <SnackbarProvider maxSnack={3}>
-      <Container maxWidth="sm">
-        <Typography variant="h4" align="center" gutterBottom>
-          ERC20 Transfer App
-        </Typography>
-        <WalletConnect />
-        <SendTokenForm />
-        <TransactionStatus />
-      </Container>
-    </SnackbarProvider>
+    <Container maxWidth="xs">
+      <Typography variant="h4" align="center" gutterBottom>
+        Token Sender
+      </Typography>
+      <Divider sx={{ marginY: 4 }} />
+      <SendTokenForm />
+      <Divider sx={{ marginY: 4 }} />
+      <TransactionStatus />
+    </Container>
   );
-}
+};
 
 export default App;

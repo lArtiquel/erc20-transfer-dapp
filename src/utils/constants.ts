@@ -1,4 +1,11 @@
-export const supportedTokens = [
+// src/utils/constants.ts
+
+interface Token {
+  name: string;
+  address: string;
+}
+
+export const supportedTokens: Token[] = [
   {
     name: 'ETH',
     address: 'ETH',
