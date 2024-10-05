@@ -2,11 +2,8 @@
 
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import {
-  addTransaction,
-  updateTransactionStatus,
-  setTransactions,
-} from '../store/transactionSlice';
+import { JsonRpcProvider } from 'ethers';
+import { addTransaction, updateTransactionStatus, Transaction } from '../store/transactionSlice';
 import broadcast from '../store/broadcast';
 import { useEffect } from 'react';
 
@@ -20,6 +17,37 @@ export const useTransaction = () => {
 
   const updateStatus = (hash: string, status: 'success' | 'failed') => {
     dispatch(updateTransactionStatus({ hash, status }));
+  };
+
+  // Function to verify transaction statuses
+  const verifyTransactionStatuses = async () => {
+    const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
+    if (!rpcEndpoint) {
+      console.error('REACT_APP_RPC_ENDPOINT is not defined in the environment variables.');
+      return;
+    }
+
+    const provider = new JsonRpcProvider(rpcEndpoint);
+
+    try {
+      await Promise.all(
+        transactions.map(async tx => {
+          if (tx.status === 'pending') {
+            try {
+              const receipt = await provider.getTransactionReceipt(tx.hash);
+              if (receipt) {
+                const newStatus: 'success' | 'failed' = receipt.status === 1 ? 'success' : 'failed';
+                dispatch(updateTransactionStatus({ hash: tx.hash, status: newStatus }));
+              }
+            } catch (error) {
+              console.error(`Error verifying transaction ${tx.hash}:`, error);
+            }
+          }
+        })
+      );
+    } catch (error) {
+      console.error('Error verifying transaction statuses:', error);
+    }
   };
 
   // Listen to BroadcastChannel messages to synchronize transactions across tabs
@@ -40,9 +68,14 @@ export const useTransaction = () => {
     };
   }, [dispatch]);
 
-  // On initial load, ensure all transactions are synchronized
+  // On initial load and whenever transactions change, verify their statuses
   useEffect(() => {
-    // Optionally, you can implement logic to fetch and verify transaction statuses here
+    // Only verify if there are pending transactions
+    const hasPending = transactions.some(tx => tx.status === 'pending');
+    if (hasPending) {
+      verifyTransactionStatuses();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

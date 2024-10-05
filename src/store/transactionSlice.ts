@@ -3,7 +3,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import broadcast from './broadcast';
 
-interface Transaction {
+export interface Transaction {
   hash: string;
   status: 'pending' | 'success' | 'failed';
 }

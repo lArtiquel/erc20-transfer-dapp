@@ -3,12 +3,8 @@
 import React from 'react';
 import { Typography, List, ListItem, Chip, Stack, Box } from '@mui/material';
 import { useTransaction } from '../hooks/useTransaction';
-
-// Helper function to truncate Ethereum addresses or hashes
-const truncateAddress = (address: string, startLength = 6, endLength = 4): string => {
-  if (!address) return '';
-  return `${address.substring(0, startLength)}...${address.substring(address.length - endLength)}`;
-};
+import { truncateAddress } from '../utils/helperFunctions';
+import { Transaction } from '../store/transactionSlice'; // Ensure correct import
 
 // Helper function to determine Chip color based on status
 const getStatusChipColor = (
@@ -37,17 +33,17 @@ const TransactionStatus: React.FC = () => {
       {transactions.length > 0 ? (
         <List
           sx={{
-            maxHeight: '400px', // Fixed height
-            overflow: 'auto', // Scrollable
+            maxHeight: '400px',
+            overflow: 'auto',
             backgroundColor: 'background.paper',
             borderRadius: 1,
             padding: 0,
           }}
         >
           {transactions
-            .slice() // Create a shallow copy to avoid mutating the original array
+            .slice()
             .reverse() // Newest transactions on top
-            .map(tx => (
+            .map((tx: Transaction) => (
               <ListItem
                 key={tx.hash}
                 divider
@@ -58,6 +54,13 @@ const TransactionStatus: React.FC = () => {
                     backgroundColor: 'primary.dark',
                   },
                 }}
+                onClick={() =>
+                  window.open(
+                    `https://sepolia.etherscan.io/tx/${tx.hash}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
+                }
               >
                 <Stack
                   direction="row"
@@ -76,13 +79,6 @@ const TransactionStatus: React.FC = () => {
                         color: '#0d47a1',
                       },
                     }}
-                    onClick={() =>
-                      window.open(
-                        `https://sepolia.etherscan.io/tx/${tx.hash}`,
-                        '_blank',
-                        'noopener,noreferrer'
-                      )
-                    }
                   >
                     {truncateAddress(tx.hash)}
                   </Typography>
