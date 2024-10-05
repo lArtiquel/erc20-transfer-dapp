@@ -22,7 +22,7 @@ const App: React.FC = () => {
           }}
         />
         <Typography variant="h4" color="text.primary">
-          Token Sender DApp
+          Token Transfer DApp
         </Typography>
       </Box>
       <Divider sx={{ marginY: 4 }} />
