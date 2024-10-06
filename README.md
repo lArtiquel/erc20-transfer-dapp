@@ -1,46 +1,82 @@
-# Getting Started with Create React App
+# ERC20 Transfer DApp
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Overview
 
-## Available Scripts
+**ERC20 Transfer DApp** is a user-friendly decentralized application designed to facilitate the sending of ERC20 tokens on the **Sepolia** Ethereum test network. Focused on delivering a nice user experience, this DApp ensures seamless token transactions with real-time feedback and state persistence.
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Send ERC20 Tokens:** Easily transfer your ERC20 tokens to any Ethereum address.
+- **User-Friendly Interface:** Intuitive design keeps users informed about transaction statuses, including expected mining times and error notifications.
+- **State Persistence:** If you close the browser and return later, the app accurately reflects the current state of your transactions.
+- **Cross-Tab Consistency:** Transaction states remain consistent across multiple browser tabs, ensuring a unified experience.
+- **Secure Wallet Connection:** The app starts in read-only mode and prompts users to connect their wallets only when they initiate an action.
+- **WalletConnect Integration:** Connect with various wallet applications seamlessly using WalletConnect.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Supported Tokens
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- **ETH**
+- **Sepolia Test PUPA Token** (Custom ERC20 Token deployed on Sepolia)
 
-### `npm test`
+_Note: Additional ERC20 tokens can be added to the supported list as needed._
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Live Demo
 
-### `npm run build`
+Experience the DApp in action by visiting the live deployment:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+🔗 [ERC20 Transfer DApp Live](https://token-transfer-dapp.artware.me/)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Deployment Guide
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Steps to Deploy the Custom ERC20 Token
 
-### `npm run eject`
+See `erc20-token` folder for a guide to setup a custom token for testing purposes on a Sepolia network.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Technologies Used
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **React:** Frontend library for building user interfaces.
+- **Redux:** State management library for JavaScript applications.
+- **TypeScript:** Superset of JavaScript that adds static typing.
+- **WalletConnect:** Open protocol for connecting wallets to DApps.
+- **OpenZeppelin Contracts:** Library for secure smart contract development.
+- **Notistack:** Snackbar library for notifications in React.
+- **Material-UI (MUI):** React UI framework for building responsive interfaces.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## User Experience Highlights
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- **Real-Time Transaction Feedback:** Users receive instant notifications about the status of their transactions, including expected mining times and error messages.
+- **State Persistence:** The app maintains accurate transaction states even if the browser is closed and reopened, ensuring users are always informed.
+- **Multi-Tab Consistency:** Transaction statuses are synchronized across all open tabs, providing a consistent user experience.
+- **Secure and Intuitive Wallet Connection:** The app initiates in a read-only mode, prompting users to connect their wallets only when necessary, enhancing security and usability.
 
-## Learn More
+## Getting Started
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. **Clone the Repository**
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+   ```bash
+   git clone git@github.com:lArtiquel/erc20-transfer-dapp.git
+   cd erc20-transfer-dapp
+   ```
+
+2. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**
+
+   Create a `.env` file in the project root with the following:
+
+   ```env
+    REACT_APP_WALLETCONNECT_PROJECT_ID=your_project_id
+    REACT_APP_RPC_ENDPOINT=https://eth-sepolia.g.alchemy.com/v2/your_api_key
+   ```
+
+4. **Run the Application**
+
+   ```bash
+   npm start
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000) in your browser to view the app.
