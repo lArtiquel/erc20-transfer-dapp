@@ -15,10 +15,11 @@
 
 ## Supported Tokens
 
-- **ETH**
-- **Sepolia Test PUPA Token** (Custom ERC20 Token deployed on Sepolia)
+- **ETH** - find free [Faucet here](https://faucets.chain.link/sepolia)
+- **LINK Token** - find free [Faucet here](https://faucets.chain.link/sepolia)
+- **PUPA Token** (Custom ERC20 Token deployed on Sepolia - see erc20-token folder) UPD: could not deploy contract due to very high prices on Sepolia testnet
 
-_Note: Additional ERC20 tokens can be added to the supported list as needed._
+_Note: Additional ERC20 tokens can be added to the supported list as needed. Follow `src/utils/constants.ts` file to add supported tokens to the list._
 
 ## Live Demo
 

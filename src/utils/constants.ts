@@ -11,7 +11,8 @@ export const supportedTokens: Token[] = [
     address: 'ETH',
   },
   {
-    name: 'Sepolia Test Token',
-    address: '0x', // todo
+    name: 'Sepolia Test LINK Token',
+    address: '0x779877A7B0D9E8603169DdbD7836e478b4624789',
   },
+  // any other ERC-20 token you wish to import here
 ];
